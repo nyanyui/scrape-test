@@ -88,15 +88,20 @@ import os
 
 # print("スクレイピング完了！")
 # print(all_races_data[0]) # Let's take a peek at the structure
+y = 0
 def scrape():
     jockeys = {}
     horses = set()
     jockey_seen = set()
     races = []
     race_ids = generate_race_ids(2024,2024)
-    # race_ids = [202405040811]
+    # race_ids = [202406050811]
+    y = 0
     for race_id in race_ids:
-        races.append(scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen))
+        # races.append(scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen))
+        r_id, r = scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen,y=y)
+        y+=1
+        # save_races_to_csv(r,jockeys)
 
     with open("Data\\jockeys.csv", "w", newline='', encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -121,37 +126,28 @@ def scrape():
 
     return jockeys, horses, races
 
-def save_races_to_csv(races, jockeys, output_dir="races"):
+def save_races_to_csv(race, jockeys, y,output_dir="Data\\races"):
     os.makedirs(output_dir, exist_ok=True)
-    j=0
-    for race_id, race in races:
-        race_horses = race[:-1]
-        result = race[-1]
-        filename = os.path.join(output_dir, f"race_{j}.csv")
-        j += 1
-        with open(filename, "w", newline='', encoding="utf-8") as f:
-            writer = csv.writer(f)
+    race_horses = race[:-1]
+    result = race[-1]
+    filename = os.path.join(output_dir, f"race_{y}.csv")
+    with open(filename, "w", newline='', encoding="utf-8") as f:
+        writer = csv.writer(f)
+        i = 0
+        for rh in race_horses:
             writer.writerow([
-                "horse_id", "horse_name", "frame", "post",
-                "jockey_id", "jockey_name", "jockey_weight",
-                "horse_weight", "weight_change", "popularity"
+                rh.Horse.horse_id,
+                rh.Horse.name,
+                rh.frame,
+                rh.post,
+                rh.jockey_id,
+                rh.jockey_weight,
+                rh.weight,
+                rh.weight_change,
+                rh.popularity,
+                result[i]
             ])
-            i = 0
-            for rh in race_horses:
-                writer.writerow([
-                    rh.Horse.horse_id,
-                    rh.Horse.name,
-                    rh.frame,
-                    rh.post,
-                    rh.jockey_id,
-                    jockeys.get(rh.jockey_id, "Unknown"),
-                    rh.jockey_weight,
-                    rh.weight,
-                    rh.weight_change,
-                    rh.popularity,
-                    result[i]
-                ])
-                i += 1
+            i += 1
 
 
 
@@ -272,7 +268,7 @@ def scrape_horse_lineage(horse_id, horses):
     horses.add(horse)
     return horse
 
-def scrape_race(jockeys,horses, race_id, jockey_seen):
+def scrape_race(jockeys,horses, race_id, jockey_seen,y):
     url = f"https://db.netkeiba.com/race/{race_id}/"
     headers = {'User-Agent': 'Mozilla/5.0'}
     res = requests.get(url, headers=headers)
@@ -302,7 +298,9 @@ def scrape_race(jockeys,horses, race_id, jockey_seen):
         cols = row.find_all("td")
         if len(cols) < 18:
             continue
-        if(type(cols[0].text.strip())!=int):
+
+        try: a = int(cols[0].text.strip())
+        except ValueError:
             continue
         horse_cell = cols[3]
         horse_link = horse_cell.select_one("a[href*='/horse/']")
@@ -317,6 +315,8 @@ def scrape_race(jockeys,horses, race_id, jockey_seen):
         jockey_weight = cols[5].text.strip()
         h_weight = cols[14].text.strip()[:3]
         weight_change = cols[14].text.strip()[4:-1]
+        if(weight_change[0]== '+'):
+            weight_change = weight_change[1:]
         popularity = cols[13].text.strip()
         jockey_id = jockeys[cols[6].text.strip()]
         racehorse = RaceHorse(Horse=horse, frame=frame, post=post, weight=h_weight, weight_change=weight_change,popularity=popularity, jockey_id=jockey_id, jockey_weight=jockey_weight)
@@ -326,10 +326,9 @@ def scrape_race(jockeys,horses, race_id, jockey_seen):
             print(f"[WARN] Could not convert result to int in race {race_id}")
 
         race.append(racehorse)
-    # for r in race:
-    #     r.printhorse()
     race.append(result)
     # print(race[-1])
+    save_races_to_csv(race,jockeys,y)
     print(f"✅ レース{race_id}のデータを取得しました。")
     return (race_id, race)
 
