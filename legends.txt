@@ -1,0 +1,2 @@
+For each race:
+horse_id, horse_name, sex_id, farm_id, sire_id, dam_id, grandsire_id, damsire_id, frame, post, jockey_id, jockey_weight, horse_weight, horse_weight_change, popularity, final position

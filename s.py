@@ -137,6 +137,12 @@ def save_races_to_csv(race, jockeys, y,output_dir="Data\\races"):
             writer.writerow([
                 rh.Horse.horse_id,
                 rh.Horse.name,
+                rh.Horse.sex_id,
+                rh.Horse.farm_id,
+                rh.Horse.sire_id,
+                rh.Horse.dam_id,
+                rh.Horse.grandsire_id,
+                rh.Horse.damsire_id,
                 rh.frame,
                 rh.post,
                 rh.jockey_id,
@@ -241,12 +247,12 @@ def extract_lineage_ids(soup):
         return None, None, None, None
 
     return sire_id, dam_id, grandsire_id, damsire_id
-def sex_to_id(sex):
-    if sex=='牡':
+def sex_to_id(sex_tag):
+    if '牡' in sex_tag:
         return 1
-    elif sex=='牝':
+    elif '牝' in sex_tag:
         return 0
-    elif sex=='セ':
+    elif 'セ' in sex_tag:
         return 2
     return -1
 def scrape_horse_lineage(horse_id, horses):
@@ -263,7 +269,7 @@ def scrape_horse_lineage(horse_id, horses):
     name = name_tag.text.strip() if name_tag else "Unknown"
 
     sex_tag = soup.select_one("p.txt_01")
-    sex_id = sex_to_id(sex_tag.text.strip()[3] if sex_tag else "?")
+    sex_id = sex_to_id(sex_tag.text.strip() if sex_tag else "?")
     breeder = extract_breeder(soup)
     sire_id, dam_id, grandsire_id, damsire_id = extract_lineage_ids(soup)
     horse = Horse(horse_id=horse_id, name=name, sex_id=sex_id, farm_id=breeder, sire_id=sire_id, dam_id=dam_id, grandsire_id=grandsire_id, damsire_id=damsire_id)
