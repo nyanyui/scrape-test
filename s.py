@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import csv
 import os
+import time
 # def scrape_race_results_as_array(race_id):
 #     """指定されたレースIDからレース結果データをスクレイピングし、2次元配列形式で返す関数"""
 #     url = f"https://db.netkeiba.com/race/{race_id}/"
@@ -98,11 +99,8 @@ def scrape():
     # race_ids = [202406050811]
     y = 0
     for race_id in race_ids:
-        # races.append(scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen))
-        r_id, r = scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen,y=y)
+        scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen,y=y)
         y+=1
-        # save_races_to_csv(r,jockeys)
-
     with open("Data\\jockeys.csv", "w", newline='', encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["jockey_name", "jockey_id"])
@@ -251,6 +249,9 @@ def sex_to_id(sex):
         return 2
     return -1
 def scrape_horse_lineage(horse_id, horses):
+    for h in horses:
+        if h.horse_id == horse_id:
+            return h
     url = f"https://db.netkeiba.com/horse/{horse_id}/"
     headers = {'User-Agent': 'Mozilla/5.0'}
     res = requests.get(url, headers=headers)
@@ -330,7 +331,7 @@ def scrape_race(jockeys,horses, race_id, jockey_seen,y):
     # print(race[-1])
     save_races_to_csv(race,jockeys,y)
     print(f"✅ レース{race_id}のデータを取得しました。")
-    return (race_id, race)
+    time.sleep(random.uniform(1, 3)) # netkeibaへの負荷軽減のため1秒から3秒ランダムで待機
 
 
 def generate_race_ids(start_year, end_year):
