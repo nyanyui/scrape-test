@@ -4,6 +4,7 @@ import pandas as pd
 import csv
 import os
 import time
+import random
 # def scrape_race_results_as_array(race_id):
 #     """指定されたレースIDからレース結果データをスクレイピングし、2次元配列形式で返す関数"""
 #     url = f"https://db.netkeiba.com/race/{race_id}/"
