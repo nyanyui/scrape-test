@@ -345,7 +345,7 @@ def scrape_race(jockeys,horses, race_id, jockey_seen,y):
     save_races_to_csv(race,jockeys,y)
     print(f"✅ レース{race_id}のデータを取得しました。")
     time.sleep(random.uniform(1, 3)) # netkeibaへの負荷軽減のため1秒から3秒ランダムで待機
-
+    return y
 def generate_race_ids(start_year, end_year):
     race_ids = []
     for year in range(start_year, end_year + 1):
