@@ -91,12 +91,12 @@ import random
 # print("スクレイピング完了！")
 # print(all_races_data[0]) # Let's take a peek at the structure
 y = 0
-def scrape():
+def scrape(start, end):
     jockeys = {}
     horses = set()
     jockey_seen = set()
     races = []
-    race_ids = generate_race_ids(2024,2024)
+    race_ids = generate_race_ids(start,end)
     # race_ids = [202406050811]
     y = 0
     for race_id in race_ids:
@@ -315,13 +315,17 @@ def scrape_race(jockeys,horses, race_id, jockey_seen,y):
         if not horse_link:
             print(f"[WARN] Horse link not found in race {race_id}")
             continue
-
+        
         horse_id = horse_link['href'].strip('/').split('/')[-1] if horse_link else None
         horse = scrape_horse_lineage(horse_id=horse_id,horses=horses)
         frame = cols[1].text.strip()
         post = cols[2].text.strip()
         jockey_weight = cols[5].text.strip()
         h_weight = cols[14].text.strip()[:3]
+        try:
+            w = int(h_weight)
+        except ValueError:
+            continue
         weight_change = cols[14].text.strip()[4:-1]
         if(weight_change[0]== '+'):
             weight_change = weight_change[1:]
@@ -352,7 +356,5 @@ def generate_race_ids(start_year, end_year):
                         race_ids.append(race_id)
     return race_ids
 
-# scrape_horse_lineage(2020103656).printHorse()
-# print(jockey_name_to_id(202405040811))
-# jockey_name_to_id(202405040810)
-scrape()
+
+scrape(1986,2025)
