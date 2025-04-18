@@ -100,7 +100,9 @@ def scrape(start, end):
     # race_ids = [202406050811]
     y = 0
     for race_id in race_ids:
-        scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen,y=y)
+        r = scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen,y=y)
+        if r == None:
+            continue
         y+=1
     with open("Data\\jockeys.csv", "w", newline='', encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -343,7 +345,6 @@ def scrape_race(jockeys,horses, race_id, jockey_seen,y):
     save_races_to_csv(race,jockeys,y)
     print(f"✅ レース{race_id}のデータを取得しました。")
     time.sleep(random.uniform(1, 3)) # netkeibaへの負荷軽減のため1秒から3秒ランダムで待機
-
 
 def generate_race_ids(start_year, end_year):
     race_ids = []
