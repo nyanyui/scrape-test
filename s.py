@@ -332,7 +332,8 @@ def scrape_race(horses, race_id, y):
             print(f"[WARN] Horse link not found in race {race_id}")
             continue
         
-        horse_id = horse_link['href'].strip('/').split('/')[-1] if horse_link else None
+        horse_id = int(horse_link['href'].strip('/').split('/')[-1], 16) if horse_link else None
+        
         horse = scrape_horse_lineage(horse_id=horse_id,horses=horses)
         frame = cols[1].text.strip()
         post = cols[2].text.strip()
