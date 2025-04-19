@@ -6,6 +6,7 @@ import os
 import time
 import random
 import re
+import subprocess
 # def scrape_race_results_as_array(race_id):
 #     """指定されたレースIDからレース結果データをスクレイピングし、2次元配列形式で返す関数"""
 #     url = f"https://db.netkeiba.com/race/{race_id}/"
@@ -94,16 +95,30 @@ import re
 y = 0
 def scrape(start, end):
     horses = set()
-    races = []
+
+    # Checkpoint to resume from
+    checkpoint = get_checkpoint()
+    found_checkpoint = False if checkpoint else True
     race_ids = generate_race_ids(start,end)
-    y = 0
+    y = get_next_race_index()
     for race_id in race_ids:
-        r = scrape_race(horses,race_id=race_id,y=y)
-        if r == None:
-            continue
-        y+=1
-    write_horses(horses)
-    print("スクレイピング完了！")
+        if not found_checkpoint:
+            if race_id == checkpoint:
+                found_checkpoint = True
+            continue  # skip until we reach last saved race
+        try:
+            r = scrape_race(horses,race_id=race_id,y=y)
+            if r:
+                with open("checkpoint.txt", "w") as f:
+                    f.write(race_id)
+                    y+=1
+        except Exception as e:
+            print(f"[ERROR] Failed on race {race_id}: {e}")
+            
+            # VPN refresh logic here
+            reconnect_vpn()  # or just `reconnect_vpn()` for random
+            print("⏳ Waiting 30s before retrying...")
+            time.sleep(30)
     def write_horses(horses):
         with open("Data\\horses.csv", "w", newline='', encoding="utf-8") as f:
             writer = csv.writer(f)
@@ -119,7 +134,8 @@ def scrape(start, end):
                     horse.grandsire_id,
                     horse.damsire_id
                 ])
-
+    write_horses(horses)
+    print("スクレイピング完了！")
 def scrape_test(raceid):
     horses = set()
     race_ids = [raceid]
@@ -359,6 +375,8 @@ def scrape_race(horses, race_id, y):
     # print(race[-1])
     save_races_to_csv(race,y)
     print(f"✅ レース{race_id}のデータを取得しました。")
+    with open("checkpoint.txt", "w") as f:
+        f.write(race_id)
     time.sleep(random.uniform(1, 3)) # netkeibaへの負荷軽減のため1秒から3秒ランダムで待機
     return y
 def generate_race_ids(start_year, end_year):
@@ -512,6 +530,28 @@ def map_track_condition(condition_str: str) -> int:
         "不良": 4
     }
     return mapping.get(condition_str.strip(), 0)
+def get_checkpoint():
+    try:
+        with open("checkpoint.txt", "r") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return None  # start from beginning
+def get_next_race_index(output_dir="Data\\races"):
+    os.makedirs(output_dir, exist_ok=True)
+    existing = [f for f in os.listdir(output_dir) if f.startswith("race_") and f.endswith(".csv")]
+    indices = [int(f.split("_")[1].split(".")[0]) for f in existing if f.split("_")[1].split(".")[0].isdigit()]
+    return max(indices) + 1 if indices else 0
+def reconnect_vpn(region=None):
+    try:
+        subprocess.run(["nordvpn", "disconnect"], check=True)
+        time.sleep(2)
+        if region:
+            subprocess.run(["nordvpn", "connect", region], check=True)
+        else:
+            subprocess.run(["nordvpn", "connect"], check=True)
+        print("[VPN] Reconnected to a new server.")
+    except subprocess.CalledProcessError as e:
+        print(f"[VPN ERROR] Failed to switch VPN: {e}")
 # print(normalize_horse_id('1982102220'))
-# scrape(1986,2025)
-print(scrape_test(198601020401))
+scrape(1986,2025)
+# print(scrape_test(198601020401))
