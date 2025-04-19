@@ -4,6 +4,13 @@ race_distance, race_surface, weather_score, turf_condition, dirt_condition, star
 For weather in race:
 distance, surface, weather, turf_condition, dirt_condition, start_time, orientation(direction)
 
+For sex_id:
+male = 0
+female = 1
+mixed = 2
+unknown = -1
+
+
 
 For race surface:
 unknown = 0

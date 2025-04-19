@@ -509,5 +509,5 @@ def normalize_horse_id(horse_id: str) -> str:
         print(f"[WARN] Unable to convert horse_id '{horse_id}' — returning as is.")
         return horse_id
 # print(normalize_horse_id('1982102220'))
-# scrape(1986,2025)
-print(scrape_test(199608010105))
+scrape(1986,2025)
+# print(scrape_test(199608010105))
