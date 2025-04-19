@@ -300,7 +300,11 @@ def scrape_race(horses, race_id, y):
     res.raise_for_status()  
     soup = BeautifulSoup(res.content, "html.parser")
 
-    race_condition = get_race_condition(race_id)
+    # Add horses into race
+    horse_table = soup.select_one("table.race_table_01")
+    if not horse_table:
+        print(f"レース結果テーブルが見つかりませんでした: {race_id}")
+        return None
 
     # Get list of jockey IDs
     jockey_links = soup.select("a[href^='/jockey/result/recent/']")
@@ -309,13 +313,8 @@ def scrape_race(horses, race_id, y):
         jockey_id = a['href'].strip("/").split("/")[-1]
         jockeys.append(jockey_id)
 
-    # Add horses into race
-    horse_table = soup.select_one("table.race_table_01")
-    if not horse_table:
-        print(f"レース結果テーブルが見つかりませんでした: {race_id}")
-        return None
-
     race = []
+    race_condition = get_race_condition(res)
     race.append(race_condition)
     result = []
     rows = horse_table.find_all("tr")[1:]
@@ -372,10 +371,7 @@ def generate_race_ids(start_year, end_year):
                         race_ids.append(race_id)
     return race_ids
 
-def get_race_condition(race_id):
-    url = f"https://db.netkeiba.com/race/{race_id}/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    res = requests.get(url, headers=headers)
+def get_race_condition(res):
     res.raise_for_status()
     res.encoding = 'euc-jp'
     soup = BeautifulSoup(res.text, "html.parser")
@@ -497,5 +493,5 @@ def classify_racecourse(soup) -> int:
         name = active_link.text.strip()
         return racecourse_map.get(name, 0)
     return 0  # unknown
-scrape(2024,2024)
+scrape(1986,2025)
 # print(scrape_test(199608010105))
