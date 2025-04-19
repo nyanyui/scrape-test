@@ -1,2 +1,44 @@
-For each race:
-horse_id, horse_name, sex_id, farm_id, sire_id, dam_id, grandsire_id, damsire_id, frame, post, jockey_id, jockey_weight, horse_weight, horse_weight_change, popularity, final position
+For each racehorse in race:
+race_distance, race_surface, weather_score, turf_condition, dirt_condition, start_time, track_direction, racecourse_index, horse_id, horse_name, sex_id, farm_id, sire_id, dam_id, grandsire_id, damsire_id, frame, post, jockey_id, jockey_weight, horse_weight, horse_weight_change, popularity, final position
+
+For weather in race:
+distance, surface, weather, turf_condition, dirt_condition, start_time, orientation(direction)
+
+
+For race surface:
+unknown = 0
+turf = 1
+dirt = 2
+jump = 3
+
+For track condition:
+良 = 4
+稍重 = 3
+重 = 2
+不良 = 1
+Not applicable = 0
+
+For weather:
+晴 = 1
+曇 = 2
+雨 = 3
+雪 = 4
+unkown = 0
+
+For orientation:
+右 = 1
+左 = 2
+unknown = 0
+
+For racecourses:
+"札幌": 1,
+"函館": 2,
+"福島": 3,
+"新潟": 4,
+"東京": 5,
+"中山": 6,
+"中京": 7,
+"京都": 8,
+"阪神": 9,
+"小倉": 10
+

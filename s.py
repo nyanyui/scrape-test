@@ -5,6 +5,7 @@ import csv
 import os
 import time
 import random
+import re
 # def scrape_race_results_as_array(race_id):
 #     """指定されたレースIDからレース結果データをスクレイピングし、2次元配列形式で返す関数"""
 #     url = f"https://db.netkeiba.com/race/{race_id}/"
@@ -92,44 +93,50 @@ import random
 # print(all_races_data[0]) # Let's take a peek at the structure
 y = 0
 def scrape(start, end):
-    jockeys = {}
     horses = set()
-    jockey_seen = set()
     races = []
     race_ids = generate_race_ids(start,end)
-    # race_ids = [202406050811]
     y = 0
     for race_id in race_ids:
-        r = scrape_race(jockeys, horses,race_id=race_id, jockey_seen=jockey_seen,y=y)
+        r = scrape_race(horses,race_id=race_id,y=y)
         if r == None:
             continue
         y+=1
-    with open("Data\\jockeys.csv", "w", newline='', encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["jockey_name", "jockey_id"])
-        for name, jid in jockeys.items():
-            writer.writerow([name, jid])
-    
-    with open("Data\\horses.csv", "w", newline='', encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["horse_id", "name", "sex_id", "farm_id", "sire_id", "dam_id", "grandsire_id", "damsire_id"])
-        for horse in horses:
-            writer.writerow([
-                horse.horse_id,
-                horse.name,
-                horse.sex_id,
-                horse.farm_id,
-                horse.sire_id,
-                horse.dam_id,
-                horse.grandsire_id,
-                horse.damsire_id
-            ])
+    write_horses(horses)
+    print("スクレイピング完了！")
+    def write_horses(horses):
+        with open("Data\\horses.csv", "w", newline='', encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["horse_id", "name", "sex_id", "farm_id", "sire_id", "dam_id", "grandsire_id", "damsire_id"])
+            for horse in horses:
+                writer.writerow([
+                    horse.horse_id,
+                    horse.name,
+                    horse.sex_id,
+                    horse.farm_id,
+                    horse.sire_id,
+                    horse.dam_id,
+                    horse.grandsire_id,
+                    horse.damsire_id
+                ])
 
-    return jockeys, horses, races
+def scrape_test(raceid):
+    horses = set()
+    race_ids = [raceid]
+    y = 0
+    for race_id in race_ids:
+        r = scrape_race(horses,race_id=race_id,y=y)
+        if r == None:
+            continue
+        y+=1
 
-def save_races_to_csv(race, jockeys, y,output_dir="Data\\races"):
+    return horses
+
+def save_races_to_csv(race, y,output_dir="Data\\races"):
     os.makedirs(output_dir, exist_ok=True)
-    race_horses = race[:-1]
+    race_cond = race[0]
+    race_distance, race_surface, weather_score, turf_condition, dirt_condition, start_time, track_direction, racecourse_index= race_cond
+    race_horses = race[1:-1]
     result = race[-1]
     filename = os.path.join(output_dir, f"race_{y}.csv")
     with open(filename, "w", newline='', encoding="utf-8") as f:
@@ -137,6 +144,14 @@ def save_races_to_csv(race, jockeys, y,output_dir="Data\\races"):
         i = 0
         for rh in race_horses:
             writer.writerow([
+                race_distance,
+                race_surface,
+                weather_score,
+                turf_condition,
+                dirt_condition,
+                start_time,
+                track_direction,
+                racecourse_index,
                 rh.Horse.horse_id,
                 rh.Horse.name,
                 rh.Horse.sex_id,
@@ -278,22 +293,21 @@ def scrape_horse_lineage(horse_id, horses):
     horses.add(horse)
     return horse
 
-def scrape_race(jockeys,horses, race_id, jockey_seen,y):
+def scrape_race(horses, race_id, y):
     url = f"https://db.netkeiba.com/race/{race_id}/"
     headers = {'User-Agent': 'Mozilla/5.0'}
     res = requests.get(url, headers=headers)
     res.raise_for_status()  
     soup = BeautifulSoup(res.content, "html.parser")
 
-    # Add new jockeys 
+    race_condition = get_race_condition(race_id)
+
+    # Get list of jockey IDs
     jockey_links = soup.select("a[href^='/jockey/result/recent/']")
-    
+    jockeys = []
     for a in jockey_links:
-        jockey_name = a.text.strip()
         jockey_id = a['href'].strip("/").split("/")[-1]
-        if jockey_id not in jockey_seen:
-            jockey_seen.add(jockey_id)
-            jockeys.update({jockey_name:jockey_id})
+        jockeys.append(jockey_id)
 
     # Add horses into race
     horse_table = soup.select_one("table.race_table_01")
@@ -302,6 +316,7 @@ def scrape_race(jockeys,horses, race_id, jockey_seen,y):
         return None
 
     race = []
+    race.append(race_condition)
     result = []
     rows = horse_table.find_all("tr")[1:]
     for row in rows:
@@ -332,7 +347,7 @@ def scrape_race(jockeys,horses, race_id, jockey_seen,y):
         if(weight_change[0]== '+'):
             weight_change = weight_change[1:]
         popularity = cols[13].text.strip()
-        jockey_id = jockeys[cols[6].text.strip()]
+        jockey_id = jockeys.pop(0)
         racehorse = RaceHorse(Horse=horse, frame=frame, post=post, weight=h_weight, weight_change=weight_change,popularity=popularity, jockey_id=jockey_id, jockey_weight=jockey_weight)
         try:
             result.append(int(cols[0].text.strip()))
@@ -342,7 +357,7 @@ def scrape_race(jockeys,horses, race_id, jockey_seen,y):
         race.append(racehorse)
     race.append(result)
     # print(race[-1])
-    save_races_to_csv(race,jockeys,y)
+    save_races_to_csv(race,y)
     print(f"✅ レース{race_id}のデータを取得しました。")
     time.sleep(random.uniform(1, 3)) # netkeibaへの負荷軽減のため1秒から3秒ランダムで待機
     return y
@@ -357,5 +372,130 @@ def generate_race_ids(start_year, end_year):
                         race_ids.append(race_id)
     return race_ids
 
+def get_race_condition(race_id):
+    url = f"https://db.netkeiba.com/race/{race_id}/"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    res = requests.get(url, headers=headers)
+    res.raise_for_status()
+    res.encoding = 'euc-jp'
+    soup = BeautifulSoup(res.text, "html.parser")
 
-scrape(1986,2025)
+    # Extract full info line (e.g., "芝右1800m / 天候 : 曇 / 芝 : 良 ダート : 良 / 発走 : 15:40")
+    span = soup.select_one("div.data_intro span")
+    if not span:
+        print(f"[WARN] Could not find race info span for race {race_id}")
+        return None
+
+    text = span.text.strip().replace('\xa0', ' ').replace('　', ' ')
+    
+    # Initial fields
+    surface = -1
+    distance = -1
+    weather_score = -1
+    turf_condition = -1
+    dirt_condition = -1
+    start_time = -1
+    direction = -1
+
+    # Parse distance & surface
+    dist_match = re.search(r"(芝|ダ|障)[^\d直左右]*([直左右]?)(\d+)m", text)
+    if dist_match:
+        surface_text = dist_match.group(1)
+        direction_text = dist_match.group(2)
+        distance = int(dist_match.group(3))
+
+        surface = classify_surface(surface_text)
+        direction = classify_direction(direction_text)
+
+    # Parse weather
+    weather_match = re.search(r"天候\s*:\s*(\S+)", text)
+    if weather_match:
+        weather_score = classify_weather(weather_match.group(1))
+
+    # Parse track condition
+    turf_condition, dirt_condition = classify_track_conditions(text)
+
+    # Parse start time
+    time_match = re.search(r"発走\s*:\s*(\d{1,2}):(\d{2})", text)
+    if time_match:
+        hour = int(time_match.group(1))
+        minute = int(time_match.group(2))
+        start_time = hour * 100 + minute  # e.g., 11:15 → 1115
+
+    racecourse_index = classify_racecourse(soup)
+
+    return [
+    distance,
+    surface,
+    weather_score,
+    turf_condition,
+    dirt_condition,
+    start_time,
+    direction,
+    racecourse_index
+    ]
+
+def classify_track_conditions(text):
+    turf_match = re.search(r"芝\s*:\s*(\S+)", text)
+    dirt_match = re.search(r"ダート\s*:\s*(\S+)", text)
+
+    turf = turf_match.group(1) if turf_match else 'None'
+    dirt = dirt_match.group(1) if dirt_match else 'None'
+    if turf:
+        turf = turf.replace("良", "1").replace("稍重", "2").replace("重", "3").replace("不良", "4").replace('None', "0")
+    if dirt:
+        dirt = dirt.replace("良", "1").replace("稍重", "2").replace("重", "3").replace("不良", "4").replace('None', "0")
+    return int(turf), int(dirt)
+def classify_surface(distance_info: str) -> str:
+    if "芝" in distance_info and "ダ" not in distance_info:
+        return 1
+    elif "ダ" in distance_info:
+        return 2
+    elif "障" in distance_info:
+        return 3
+    else:
+        return 0
+def classify_weather(text: str) -> int:
+    if "雪" in text:
+        return 4
+    elif "雨" in text:
+        return 3
+    elif "曇" in text:
+        return 2
+    elif "晴" in text:
+        return 1
+    else:
+        return 0  # unknown
+def classify_direction(direction_char: str) -> int:
+    if direction_char == "右":
+        return 1
+    elif direction_char == "左":
+        return 2
+    elif direction_char == "直":
+        return 3
+    else:
+        return 0
+def classify_racecourse(soup) -> int:
+    """
+    Extracts the racecourse name from the <h1> tag and maps it to a JRA index.
+    Returns an integer index from 1–10, or 0 if unknown.
+    """
+    racecourse_map = {
+        "札幌": 1,
+        "函館": 2,
+        "福島": 3,
+        "新潟": 4,
+        "東京": 5,
+        "中山": 6,
+        "中京": 7,
+        "京都": 8,
+        "阪神": 9,
+        "小倉": 10
+    }
+    active_link = soup.select_one("ul.race_place.fc a.active")
+    if active_link:
+        name = active_link.text.strip()
+        return racecourse_map.get(name, 0)
+    return 0  # unknown
+scrape(2024,2024)
+# print(scrape_test(199608010105))
