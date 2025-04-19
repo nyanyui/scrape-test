@@ -263,7 +263,7 @@ def extract_lineage_ids(soup):
         print("[WARN] Not enough pedigree cells found.")
         return None, None, None, None
 
-    return sire_id, dam_id, grandsire_id, damsire_id
+    return normalize_horse_id(sire_id), normalize_horse_id(dam_id), normalize_horse_id(grandsire_id), normalize_horse_id(damsire_id)
 def sex_to_id(sex_tag):
     if '牡' in sex_tag:
         return 1
@@ -289,7 +289,7 @@ def scrape_horse_lineage(horse_id, horses):
     sex_id = sex_to_id(sex_tag.text.strip() if sex_tag else "?")
     breeder = extract_breeder(soup)
     sire_id, dam_id, grandsire_id, damsire_id = extract_lineage_ids(soup)
-    horse = Horse(horse_id=horse_id, name=name, sex_id=sex_id, farm_id=breeder, sire_id=sire_id, dam_id=dam_id, grandsire_id=grandsire_id, damsire_id=damsire_id)
+    horse = Horse(horse_id=normalize_horse_id(horse_id), name=name, sex_id=sex_id, farm_id=breeder, sire_id=sire_id, dam_id=dam_id, grandsire_id=grandsire_id, damsire_id=damsire_id)
     horses.add(horse)
     return horse
 
@@ -332,7 +332,7 @@ def scrape_race(horses, race_id, y):
             print(f"[WARN] Horse link not found in race {race_id}")
             continue
         
-        horse_id = int(horse_link['href'].strip('/').split('/')[-1], 16) if horse_link else None
+        horse_id = horse_link['href'].strip('/').split('/')[-1] if horse_link else None
         
         horse = scrape_horse_lineage(horse_id=horse_id,horses=horses)
         frame = cols[1].text.strip()
@@ -494,5 +494,20 @@ def classify_racecourse(soup) -> int:
         name = active_link.text.strip()
         return racecourse_map.get(name, 0)
     return 0  # unknown
-scrape(1986,2025)
-# print(scrape_test(199608010105))
+def normalize_horse_id(horse_id: str) -> str:
+    """
+    Converts a hexadecimal horse_id (if detected) to a decimal string.
+    If already decimal, returns as-is.
+    """
+    try:
+        if horse_id.startswith("0x") or all(c in "0123456789abcdefABCDEF" for c in horse_id):
+            # Treat as hex only if non-decimal characters exist or prefix detected
+            return str(int(horse_id, 16))
+        else:
+            return horse_id
+    except ValueError:
+        print(f"[WARN] Unable to convert horse_id '{horse_id}' — returning as is.")
+        return horse_id
+# print(normalize_horse_id('1982102220'))
+# scrape(1986,2025)
+print(scrape_test(199608010105))
