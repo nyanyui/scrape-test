@@ -380,7 +380,7 @@ def get_race_condition(res):
     # Extract full info line (e.g., "芝右1800m / 天候 : 曇 / 芝 : 良 ダート : 良 / 発走 : 15:40")
     span = soup.select_one("div.data_intro span")
     if not span:
-        print(f"[WARN] Could not find race info span for race {race_id}")
+        print(f"[WARN] Could not find race info span for race")
         return None
 
     text = span.text.strip().replace('\xa0', ' ').replace('　', ' ')
