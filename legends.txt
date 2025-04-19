@@ -19,10 +19,10 @@ dirt = 2
 jump = 3
 
 For track condition:
-良 = 4
-稍重 = 3
-重 = 2
-不良 = 1
+"良": 1,
+"稍重": 2,
+"重": 3,
+"不良": 4
 Not applicable = 0
 
 For weather:

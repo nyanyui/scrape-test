@@ -436,13 +436,9 @@ def classify_track_conditions(text):
     turf_match = re.search(r"芝\s*:\s*(\S+)", text)
     dirt_match = re.search(r"ダート\s*:\s*(\S+)", text)
 
-    turf = turf_match.group(1) if turf_match else 'None'
-    dirt = dirt_match.group(1) if dirt_match else 'None'
-    if turf:
-        turf = turf.replace("良", "1").replace("稍重", "2").replace("重", "3").replace("不良", "4").replace('None', "0")
-    if dirt:
-        dirt = dirt.replace("良", "1").replace("稍重", "2").replace("重", "3").replace("不良", "4").replace('None', "0")
-    return int(turf), int(dirt)
+    turf = map_track_condition(turf_match.group(1)) if turf_match else 0
+    dirt = map_track_condition(dirt_match.group(1)) if dirt_match else 0
+    return turf, dirt
 def classify_surface(distance_info: str) -> str:
     if "芝" in distance_info and "ダ" not in distance_info:
         return 1
@@ -508,6 +504,14 @@ def normalize_horse_id(horse_id: str) -> str:
     except ValueError:
         print(f"[WARN] Unable to convert horse_id '{horse_id}' — returning as is.")
         return horse_id
+def map_track_condition(condition_str: str) -> int:
+    mapping = {
+        "良": 1,
+        "稍重": 2,
+        "重": 3,
+        "不良": 4
+    }
+    return mapping.get(condition_str.strip(), 0)
 # print(normalize_horse_id('1982102220'))
-scrape(1986,2025)
-# print(scrape_test(199608010105))
+# scrape(1986,2025)
+print(scrape_test(198601020401))
